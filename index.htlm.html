@@ -3020,5 +3020,24 @@ Recur.autoRun();render();
 if(!DB.all('cards').length&&!DB.all('accounts').length)setTimeout(()=>UI.modal({title:'Bem-vindo ao FinCtrl 👋',bodyHTML:`<p style="color:var(--muted);line-height:1.7;font-size:14px">Controle completo em um só lugar: contas, cartões, <b>parcelamentos</b>, <b>pessoas</b>, contas fixas e cofrinhos.</p><p style="color:var(--muted2);line-height:1.7;font-size:13px;margin-top:11px">Quer começar com dados de exemplo ou do zero?</p>`,footHTML:`<button class="btn" data-x5>Começar do zero</button><button class="btn btn-p" id="wd">✨ Carregar exemplo</button>`,onMount(){$('[data-x5]').onclick=()=>{UI.close();render();};$('#wd').onclick=()=>{DB.demo();Recur.autoRun();UI.close();render();UI.toast('Pronto! Explore o painel.');};}}),420);
 
 </script>
+  <!-- Conexão com o Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // Cole as suas chaves aqui abaixo
+  const firebaseConfig = {
+    apiKey: "AIzaSyBUj2CKyD3kv_0BBOnaAnjjR20wht_00YU"
+    authDomain: "fincntrl-735dd.firebaseapp.com",
+    projectId: "fincntrl-735dd",
+    storageBucket: "fincntrl-735dd.firebasestorage.app",
+    messagingSenderId: "786919214670",
+    appId: "1:786919214670:web:048f2deeaf5eedecd67d1f",
+  };
+
+  // Inicializa o banco de dados
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+</script>
 </body>
 </html>
