@@ -3020,13 +3020,17 @@ Recur.autoRun();render();
 if(!DB.all('cards').length&&!DB.all('accounts').length)setTimeout(()=>UI.modal({title:'Bem-vindo ao FinCtrl 👋',bodyHTML:`<p style="color:var(--muted);line-height:1.7;font-size:14px">Controle completo em um só lugar: contas, cartões, <b>parcelamentos</b>, <b>pessoas</b>, contas fixas e cofrinhos.</p><p style="color:var(--muted2);line-height:1.7;font-size:13px;margin-top:11px">Quer começar com dados de exemplo ou do zero?</p>`,footHTML:`<button class="btn" data-x5>Começar do zero</button><button class="btn btn-p" id="wd">✨ Carregar exemplo</button>`,onMount(){$('[data-x5]').onclick=()=>{UI.close();render();};$('#wd').onclick=()=>{DB.demo();Recur.autoRun();UI.close();render();UI.toast('Pronto! Explore o painel.');};}}),420);
 
 </script>
-  <!-- Conexão com o Firebase -->
-<script type="module">
+ <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { 
+    getFirestore, 
+    doc, 
+    setDoc, 
+    onSnapshot 
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // Cole as suas chaves aqui abaixo
-  const firebaseConfig = {
+  // 1. COLE AQUI AS SUAS CHAVES OBTIDAS NO PAINEL DO FIREBASE
+ const firebaseConfig = {
     apiKey: "AIzaSyBUj2CKyD3kv_0BBOnaAnjjR20wht_00YU"
     authDomain: "fincntrl-735dd.firebaseapp.com",
     projectId: "fincntrl-735dd",
@@ -3035,9 +3039,86 @@ if(!DB.all('cards').length&&!DB.all('accounts').length)setTimeout(()=>UI.modal({
     appId: "1:786919214670:web:048f2deeaf5eedecd67d1f",
   };
 
-  // Inicializa o banco de dados
+  // 2. Inicialização do Firebase
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-</script>
+
+  // ID do Banco de Dados (Pode usar um nome fixo ou o ID do Usuário)
+  const USER_DB_ID = "meu_painel_principal"; 
+
+  // 3. Modificação do seu Objeto DB para usar o Firebase em Nuvem
+  window.DB = (()=>{
+    const SHAPE = {
+      people:[], accounts:[], cards:[], categories:[], transactions:[],
+      purchases:[], vaults:[], vaultMovements:[], settlements:[],
+      recurrences:[], meta:{}
+    };
+    let d = null;
+
+    // Salva na Nuvem do Firebase
+    async function persist() {
+      if (!d) return;
+      try {
+        await setDoc(doc(db, "app_data", USER_DB_ID), d);
+        console.log("Sincronizado com o Firebase!");
+      } catch (e) {
+        console.error("Erro ao sincronizar com o Firebase:", e);
+      }
+    }
+
+    // Escuta em tempo real: se você alterar no celular, o notebook atualiza sozinho
+    function escutarNuvem() {
+      onSnapshot(doc(db, "app_data", USER_DB_ID), (snapshot) => {
+        if (snapshot.exists()) {
+          d = snapshot.data();
+          if (typeof render === 'function') render(); // Atualiza a tela automaticamente
+        } else {
+          d = JSON.parse(JSON.stringify(SHAPE));
+          seed();
+        }
+      });
+    }
+
+    function seed(){
+      d.meta = { created: Date.now(), version: 2 };
+      d.categories = [
+        ['Mercado','#DC2626'],['Alimentação','#F59E0B'],['Transporte','#3B82F6'],
+        ['Moradia','#8B5CF6'],['Saúde','#10B981'],['Educação','#06B6D4'],
+        ['Lazer','#EC4899'],['Vestuário','#F97316'],['Assinaturas','#6D28D9'],
+        ['Pets','#84CC16'],['Casa','#A855F7'],['Outros','#71717A']
+      ].map(([nome,cor])=>({id:uid(),nome,cor,tipo:'despesa'}));
+      d.people = [{id:uid(),nome:'Eu',cor:'#6D28D9',isOwner:true}];
+      persist();
+    }
+
+    escutarNuvem();
+
+    return {
+      all: t => (d ? d[t] || [] : []),
+      get: (t,id) => ((d ? d[t] || [] : []).find(x=>x.id===id)||null),
+      insert(t,o){ 
+        if(!d) return; 
+        const rec={...o,id:o.id||uid(),createdAt:Date.now()};
+        d[t].push(rec); 
+        persist(); 
+        return rec; 
+      },
+      update(t,id,patch){ 
+        if(!d) return null; 
+        const i=d[t].findIndex(x=>x.id===id);
+        if(i<0) return null; 
+        d[t][i]={...d[t][i],...patch}; 
+        persist(); 
+        return d[t][i]; 
+      },
+      remove(t,id){ 
+        if(!d) return; 
+        d[t]=d[t].filter(x=>x.id!==id); 
+        persist(); 
+      },
+      raw: () => d,
+      replaceAll(obj){ d=obj; persist(); }
+    };
+  })();
 </body>
 </html>
